@@ -1,0 +1,18 @@
+% TODO
+redTmp =  imread('input/01112v_R.jpg');
+
+original = uint8(zeros(size(redTmp,1), size(redTmp,2), 3));
+original(:,:,1) = redTmp;
+original(:,:,2) = imread('input/01112v_G.jpg');
+original(:,:,3) = imread('input/01112v_B.jpg');
+
+imshow(original);
+% zuerst circshift 
+
+%
+% schleife:
+% 
+% 1) circshift
+%
+%
+
