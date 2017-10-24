@@ -4,12 +4,11 @@
 % Funktion schreiben (mehrere k-s einsetzen >=  2, inputbild, th)
 % 
 % 3D/5D Merkmale berechnen
-% und normalisieren
 % 
 % Platzieren von k Centroids (pseudorandom Methode)
 % Pixel zuteilen (Räumliche Distanz)
 
-% Ab hier alles doppelt machen wegen 3D und 5D
+% Ab hier alles doppelt machen wegne 3D und 5D
 % arry von olvarianz (k)
 % array newVarianz (k)
 % 
