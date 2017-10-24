@@ -1,3 +1,7 @@
 % TODO
 
-test = imread('../input/01112v_R.jpg')
+% 
+
+
+%original = repmat(imread('input/01112v_R.jpg')
+%imshow(test)s
