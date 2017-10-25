@@ -1,6 +1,4 @@
 % TODO
-function [sigma, k, levels] blobdetection
-
 % % 1a
 % erstelle scale space (levels tief)
 % erstelle LoG filter (fspecial) mit currentSigma
@@ -16,9 +14,22 @@ function [sigma, k, levels] blobdetection
 % %2
 % suche in der 8er Neighborhood + oben + unten
 
-scalespace = zeros(height, width, levels); 
+% values recommended by Angabe
+sigma = 2;
+k = 1.25; %aka scale
+levels = 10;
+I1 = imread('input/butterfly.jpg');
+I2 = imread('input/ownimg.jpg');
+
+scalespace1 = zeros(size(I1,1), size(I1,2), levels);
+scalespace2 = zeros(size(I2,1), size(I2,2), levels);
+
+for i = 1:10
+    i
+end
+
+
 
 % todo Frage: scalespace interpolieren zwischen den Scales): index mal
 % scale + aufrunden
 
-end
