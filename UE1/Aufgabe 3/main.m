@@ -14,12 +14,14 @@
 % %2
 % suche in der 8er Neighborhood + oben + unten
 
+close all
+
 % values recommended by Angabe
 sigma = 2;
 k = 1.25; %aka scale
 levels = 10;
-I1 = imread('input/butterfly.jpg');
-I2 = rgb2gray(imread('input/ownimg.jpg'));
+I1 = im2double(imread('input/butterfly.jpg'));
+I2 = im2double(rgb2gray(imread('input/ownimg.jpg')));
 
 scalespace1 = zeros(size(I1,1), size(I1,2), levels);
 scalespace2 = zeros(size(I2,1), size(I2,2), levels);
@@ -36,12 +38,13 @@ for i = 1:levels
     
     % convolution
     scalespace1(:,:,i) = imfilter(I1, currentFilter, 'same', 'replicate');
-    %scalespace2(:,:,i) = imfilter(I2, currentFilter, 'same', 'replicate');
+    scalespace2(:,:,i) = imfilter(I2, currentFilter, 'same', 'replicate');
     
     % update sigma
     sigma = sigma * k;
     
     figure, imshow(scalespace1(:,:,i));
+    %figure, imshow(scalespace2(:,:,i));
 end
 
 
