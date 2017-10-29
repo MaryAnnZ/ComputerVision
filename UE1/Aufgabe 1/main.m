@@ -1,27 +1,48 @@
-% TODO
-redTmp =  imread('input/01112v_R.jpg');
+% Read input data
+name  = '01112v';
+r = '_R.jpg';
+g = '_G.jpg';
+b = '_B.jpg';
+path = 'input/';
 
-original = uint8(zeros(size(redTmp,1), size(redTmp,2), 3));
-original(:,:,1) = redTmp;
-original(:,:,2) = imread('input/01112v_G.jpg');
-original(:,:,3) = imread('input/01112v_B.jpg');
+red =  imread(strcat(strcat(path,name),r));
 
-imshow(original);
-% zuerst circshift 
+original = uint8(zeros(size(red,1), size(red,2), 3));
+original(:,:,1) = red;
+original(:,:,2) = imread(strcat(strcat(path,name),g));
+original(:,:,3) = imread(strcat(strcat(path,name),b));
 
-% resultimage = 0
-% higestREsult = 0
-% crop RED
-% schleife: -15 till 15 (horizontal and veritcal)
-% 1) cumpute circshiftIMG
-% 2) crop BLUE
-% 3) value = NCC (CropRed, cropBlue)
-% 4) if value > highestREsult;
-%    ---> higestReslut = value
-%    ---> resultImage = cirshiftIMG
-%
+figure, imshow(original);
 
-% same R and G
+result =  uint8(zeros(size(red,1), size(red,2), 3));
+result(:,:,1) = red;
 
-% merge resulting layers
+highestResultBlue = 0;
+highestResultGreen = 0;
 
+%compare red with blue and red with green in a [-15 15] circular shift
+%window
+for i = -15:1:15
+    for j = -15:1:15
+        shiftedGreen = circshift(original(:,:,2),[i j]);
+        shiftedBlue = circshift(original(:,:,3),[i j]);
+        
+        % calculated similarity between red and other channels
+        similarityGreen = corr2(red, shiftedGreen);
+        similarityBlue = corr2(red, shiftedBlue);
+        
+        %save best match!
+        if (similarityGreen>highestResultGreen)
+            highestResultGreen = similarityGreen;
+            result(:,:,2) = shiftedGreen;
+        end
+        
+        if (similarityBlue>highestResultBlue)
+            highestResultBlue = similarityBlue;
+            result(:,:,3) = shiftedBlue;
+        end
+    
+    end
+end
+
+figure, imshow(result);
