@@ -30,12 +30,16 @@
 %     
 % Bild schoen einfärben (nach centroid)
 
-img = imread('input/simple.png');
+img = imread('input/mm.jpg');
 img = im2double(img);
+img(:,:,1) = mat2gray(img(:,:,1));
+img(:,:,2) = mat2gray(img(:,:,2));
+img(:,:,3) = mat2gray(img(:,:,3));
 
 k = 3;
 
 %get default centroids
+%Choose random starting values for the centroids
 x=size(img, 2);
 y=size(img, 1);
 centroids = zeros(2, k);
@@ -55,8 +59,10 @@ else %vertical
         centroids(2, i) = centroidsY * i;
     end
 end
-classification = zeros(size(img, 1), size(img, 2));
+
+classification = zeros(y, x);
 maximumDist = sqrt(power(x, 2) + power(y, 2));
+
 for i=1:size(classification, 2)
    for j=1:size(classification, 1)
      classification(j,i) = maximumDist;
@@ -80,16 +86,20 @@ end
 % G
 % B
 % # pixel
+% clustermittelpunkte 3D/5D
 colorCentroids = zeros(4, k);
 spatialColorCentroids = zeros(6, k);
+
+%error für jeden cluster? 3D/5D
 errorColor = zeros(1, k);
 errorSpatialColor = zeros(1, k);
+
 oldErrorColor = zeros(1, k);
 oldErrorSpatialColor = zeros(1, k);
-oldClassification = zeros(size(img, 1), size(img, 2));
-oldClassificationSpatialColor = zeros(size(img, 1), size(img, 2));
+oldClassification = zeros(y, x);
+oldClassificationSpatialColor = zeros(y, x);
 classificationSpatialColor = classification;
-th = 0.1;
+th = 0.3;
 count = 0;
 loopCounter = 10;
 
@@ -98,9 +108,10 @@ color = true;
 
 while (spatialColor || color)
     count = count +1;
+    %errorberechnung
     oldErrorColor = errorColor;
     oldClassification = classification;
-    colorCentroids = zeros(4, k);
+    colorCentroids = zeros(4, k); %RGB werte und anzahl einträge in klasse
     errorColor = zeros(1, k);
     
     % the same for 5D
@@ -108,26 +119,32 @@ while (spatialColor || color)
     oldClassificationSpatialColor = classificationSpatialColor;
     spatialColorCentroids = zeros(6, k);
     errorSpatialColor = zeros(1, k);
-%find new centroids
+    
+    %find new centroids
     %classification and classificationSpatialColor are the same so the same
     %indexing can be used
     for i=1:size(classification, 2)
        for j=1:size(classification, 1)
+           %iteration durch alle klassen
+           %classification= pixelweise, welcher pixel zu welcher klasse
            colorCentroids(1, classification(j, i)) = colorCentroids(1, classification(j, i)) + img(j, i, 1);
            colorCentroids(2, classification(j, i)) = colorCentroids(2, classification(j, i)) + img(j, i, 2);
            colorCentroids(3, classification(j, i)) = colorCentroids(3, classification(j, i)) + img(j, i, 3);
            colorCentroids(4, classification(j, i)) = colorCentroids(4, classification(j, i)) + 1;
-           
+       
            spatialColorCentroids(1, classificationSpatialColor(j, i)) = spatialColorCentroids(1, classificationSpatialColor(j, i)) + img(j, i, 1);
            spatialColorCentroids(2, classificationSpatialColor(j, i)) = spatialColorCentroids(2, classificationSpatialColor(j, i)) + img(j, i, 2);
            spatialColorCentroids(3, classificationSpatialColor(j, i)) = spatialColorCentroids(3, classificationSpatialColor(j, i)) + img(j, i, 3);
-           spatialColorCentroids(4, classificationSpatialColor(j, i)) = spatialColorCentroids(4, classificationSpatialColor(j, i)) + i;
-           spatialColorCentroids(5, classificationSpatialColor(j, i)) = spatialColorCentroids(5, classificationSpatialColor(j, i)) + j;
+           spatialColorCentroids(4, classificationSpatialColor(j, i)) = spatialColorCentroids(4, classificationSpatialColor(j, i)) + i/x;
+           spatialColorCentroids(5, classificationSpatialColor(j, i)) = spatialColorCentroids(5, classificationSpatialColor(j, i)) + j/y;
            spatialColorCentroids(6, classificationSpatialColor(j, i)) = spatialColorCentroids(6, classificationSpatialColor(j, i)) + 1;
        end
     end
+    
     %these are the new centroids
     for i=1:size(colorCentroids, 2)
+        %mit dem vierten glied dividieren (durchschnittsfarbe/position
+        %berechnen)
        colorCentroids(1, i) = round(colorCentroids(1, i) / colorCentroids(4, i));
        colorCentroids(2, i) = round(colorCentroids(2, i) / colorCentroids(4, i));
        colorCentroids(3, i) = round(colorCentroids(3, i) / colorCentroids(4, i));
@@ -138,9 +155,14 @@ while (spatialColor || color)
        spatialColorCentroids(4, i) = round(spatialColorCentroids(4, i) / spatialColorCentroids(6, i));
        spatialColorCentroids(5, i) = round(spatialColorCentroids(5, i) / spatialColorCentroids(6, i));
     end
+    
+    
+    
 %reclassification
+asdasd=0;
     for i=1:size(img, 2)
         for j=1:size(img, 1)
+            asdasd=asdasd+1;
             class = -1;
             classSpatialColor = -1;
             currentDist = -1;
@@ -168,7 +190,7 @@ while (spatialColor || color)
                 distSpatialColor = sqrt(xDistSpatialColor+yDistSpatialColor+zDistSpatialColor+uDistSpatialColor+vDistSpatialColor);
                 if classSpatialColor == -1
                     classSpatialColor = m;
-                    currentDistSpatialColor = dist;
+                    currentDistSpatialColor = distSpatialColor;
                 else
                    if distSpatialColor<currentDistSpatialColor
                       currentDistSpatialColor = distSpatialColor;
@@ -178,7 +200,15 @@ while (spatialColor || color)
                 
                 
             end
-            classification(j, i) = class;
+            classification(j, i) = class;      
+            
+           
+            if (mod(asdasd,20000)==0)
+                 imshow(mat2gray(classification));
+                asdasd = asdasd;
+            end
+            
+            
             classificationSpatialColor(j, i) = classSpatialColor;
             errorColor(1, class) = errorColor(1, class) + currentDist;
             errorSpatialColor(1, classSpatialColor) = errorSpatialColor(1, classSpatialColor) + currentDistSpatialColor;
@@ -216,8 +246,8 @@ end
 
 %color the image
 testImg = zeros(size(img));
-for i=1:size(img, 2)
-   for j=1:size(img, 1) 
+for i=1:x
+   for j=1:y
       testImg(j, i, 1) = colorCentroids(1, classification(j, i));
       testImg(j, i, 2) = colorCentroids(2, classification(j, i));
       testImg(j, i, 3) = colorCentroids(3, classification(j, i));
