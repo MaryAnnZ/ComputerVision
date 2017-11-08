@@ -30,19 +30,29 @@
 %     
 % Bild schoen einfärben (nach centroid)
 
-img = imread('input/mm.jpg');
+img = imread('input/mm_small.jpg');
 img = im2double(img);
 img(:,:,1) = mat2gray(img(:,:,1));
 img(:,:,2) = mat2gray(img(:,:,2));
 img(:,:,3) = mat2gray(img(:,:,3));
 
-k = 3;
+imshow(img)
+
+k = 10;
 
 %get default centroids
 %Choose random starting values for the centroids
 x=size(img, 2);
 y=size(img, 1);
 centroids = zeros(2, k);
+
+% for i=1:size(centroids, 2)
+%         centroids(1, i) = randi([1, x]);
+%         centroids(2, i) = randi([1, y]);
+% end
+
+%centroids
+
 
 if (x >= y) % horizontal
     centroidsX = round(x/(k+1));
@@ -99,7 +109,7 @@ oldErrorSpatialColor = zeros(1, k);
 oldClassification = zeros(y, x);
 oldClassificationSpatialColor = zeros(y, x);
 classificationSpatialColor = classification;
-th = 0.3;
+th = 0.1;
 count = 0;
 loopCounter = 10;
 
@@ -141,19 +151,20 @@ while (spatialColor || color)
        end
     end
     
+    
     %these are the new centroids
     for i=1:size(colorCentroids, 2)
         %mit dem vierten glied dividieren (durchschnittsfarbe/position
         %berechnen)
-       colorCentroids(1, i) = round(colorCentroids(1, i) / colorCentroids(4, i));
-       colorCentroids(2, i) = round(colorCentroids(2, i) / colorCentroids(4, i));
-       colorCentroids(3, i) = round(colorCentroids(3, i) / colorCentroids(4, i));
+       colorCentroids(1, i) = (colorCentroids(1, i) / colorCentroids(4, i));
+       colorCentroids(2, i) = (colorCentroids(2, i) / colorCentroids(4, i));
+       colorCentroids(3, i) = (colorCentroids(3, i) / colorCentroids(4, i));
        
-       spatialColorCentroids(1, i) = round(spatialColorCentroids(1, i) / spatialColorCentroids(6, i));
-       spatialColorCentroids(2, i) = round(spatialColorCentroids(2, i) / spatialColorCentroids(6, i));
-       spatialColorCentroids(3, i) = round(spatialColorCentroids(3, i) / spatialColorCentroids(6, i));
-       spatialColorCentroids(4, i) = round(spatialColorCentroids(4, i) / spatialColorCentroids(6, i));
-       spatialColorCentroids(5, i) = round(spatialColorCentroids(5, i) / spatialColorCentroids(6, i));
+       spatialColorCentroids(1, i) = (spatialColorCentroids(1, i) / spatialColorCentroids(6, i));
+       spatialColorCentroids(2, i) = (spatialColorCentroids(2, i) / spatialColorCentroids(6, i));
+       spatialColorCentroids(3, i) = (spatialColorCentroids(3, i) / spatialColorCentroids(6, i));
+       spatialColorCentroids(4, i) = (spatialColorCentroids(4, i) / spatialColorCentroids(6, i));
+       spatialColorCentroids(5, i) = (spatialColorCentroids(5, i) / spatialColorCentroids(6, i));
     end
     
     
