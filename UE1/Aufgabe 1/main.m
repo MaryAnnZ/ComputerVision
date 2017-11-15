@@ -1,5 +1,5 @@
 % Read input data
-name  = '01112v';
+name  = '00398v';
 r = '_R.jpg';
 g = '_G.jpg';
 b = '_B.jpg';
@@ -44,5 +44,7 @@ for i = -15:1:15
     
     end
 end
+
+figure, imshow(result-original);
 
 figure, imshow(result);
