@@ -81,32 +81,26 @@ errorColor = oldErrorColor;
 oldErrorSpatial = zeros(1, k);
 errorSpatial = oldErrorSpatial;
 
-%helper variable for classification 3D/5D
-oldClassificationColor = zeros(y, x);
-oldClassificationSpatial = zeros(y, x);
-
 classificationSpatial = classificationColor;
 
 %%variables for loop termination
 th = 0.1;
 loopsLeft = 0;
-loopCounter = 100;
+loopCounter = 50;
 
 spatialColorThresholdReached = false;
 colorThresholdReached = false;
 
-while (~spatialColorThresholdReached && ~colorThresholdReached)
+while (~spatialColorThresholdReached || ~colorThresholdReached)
     loopsLeft = loopsLeft +1;
     
     %errorberechnung
     oldErrorColor = errorColor;
-    oldClassification = classificationColor;
     dataPointColor = zeros(4, k); %RGB werte und anzahl einträge in klasse
     errorColor = zeros(1, k);
     
     % the same for 5D
     oldErrorSpatial = errorSpatial;
-    oldclassificationSpatial = classificationSpatial;
     dataPointSpatial = zeros(6, k);
     errorSpatial = zeros(1, k);
     
@@ -130,13 +124,17 @@ while (~spatialColorThresholdReached && ~colorThresholdReached)
     end
     
     %Assign to new Clusters as the mean of all data points
+    %calculate the new cluster centroids
     for i=1:k
-        %4. entry is average color
+        %4. entry is # class members
+        %1-2-3 avarage RGB value of the class
         dataPointColor(1, i) = (dataPointColor(1, i) / dataPointColor(4, i));
         dataPointColor(2, i) = (dataPointColor(2, i) / dataPointColor(4, i));
         dataPointColor(3, i) = (dataPointColor(3, i) / dataPointColor(4, i));
         
-        %4. entry is average position
+        %6. entry is # class members
+        %1-2-3 avarage RGB value of the class
+        %4-5 avarage x/y value of the class
         dataPointSpatial(1, i) = (dataPointSpatial(1, i) / dataPointSpatial(6, i));
         dataPointSpatial(2, i) = (dataPointSpatial(2, i) / dataPointSpatial(6, i));
         dataPointSpatial(3, i) = (dataPointSpatial(3, i) / dataPointSpatial(6, i));
@@ -157,10 +155,10 @@ while (~spatialColorThresholdReached && ~colorThresholdReached)
             currentDistColor = -1;
             currentDistSpatial = -1;
             for m=1:size(dataPointColor, 2)
-                xDist = power((img(j, i, 1) - dataPointColor(1, m)), 2);
-                yDist = power((img(j, i, 2) - dataPointColor(2, m)), 2);
-                zDist = power((img(j, i, 3) - dataPointColor(3, m)), 2);
-                dist = sqrt(xDist+yDist+zDist);
+                rDist = power((img(j, i, 1) - dataPointColor(1, m)), 2);
+                gDist = power((img(j, i, 2) - dataPointColor(2, m)), 2);
+                bDist = power((img(j, i, 3) - dataPointColor(3, m)), 2);
+                dist = sqrt(rDist+gDist+bDist);
                 if classColor == -1
                     classColor = m;
                     currentDistColor = dist;
@@ -171,13 +169,13 @@ while (~spatialColorThresholdReached && ~colorThresholdReached)
                     end
                 end
                 
-                xDistSpatialColor = power((img(j, i, 1) - dataPointSpatial(1, m)), 2);
-                yDistSpatialColor = power((img(j, i, 2) - dataPointSpatial(2, m)), 2);
-                zDistSpatialColor = power((img(j, i, 3) - dataPointSpatial(3, m)), 2);
+                rDistSpatialColor = power((img(j, i, 1) - dataPointSpatial(1, m)), 2);
+                gDistSpatialColor = power((img(j, i, 2) - dataPointSpatial(2, m)), 2);
+                bDistSpatialColor = power((img(j, i, 3) - dataPointSpatial(3, m)), 2);
                 %normalize the position!
-                uDistSpatialColor = power(((i/x) - dataPointSpatial(4, m)), 2);
-                vDistSpatialColor = power(((j/y) - dataPointSpatial(5, m)), 2);
-                distSpatialColor = sqrt(xDistSpatialColor+yDistSpatialColor+zDistSpatialColor+uDistSpatialColor+vDistSpatialColor);
+                xDistSpatialColor = power(((i/x) - dataPointSpatial(4, m)), 2);
+                yDistSpatialColor = power(((j/y) - dataPointSpatial(5, m)), 2);
+                distSpatialColor = sqrt(rDistSpatialColor+gDistSpatialColor+bDistSpatialColor+xDistSpatialColor+yDistSpatialColor);
                 if classSpatial == -1
                     classSpatial = m;
                     currentDistSpatial = distSpatialColor;
@@ -210,13 +208,13 @@ while (~spatialColorThresholdReached && ~colorThresholdReached)
     %If the ratio lies under a given threshold
     if (loopsLeft>1)
         JColor = 1-(sum(errorColor)/sum(oldErrorColor));
-        if (JColor < th)
+        if (JColor < th && ~colorThresholdReached)
             % the error is small enough, end loop
             disp('Threshold reached with 3D data points');
             colorThresholdReached = true;
         end
         JSpatial = 1- (sum(errorSpatial)/sum(oldErrorSpatial));
-        if (JSpatial < th)
+        if (JSpatial < th && ~spatialColorThresholdReached)
             % the error is small enough, end loop
             disp('Threshold with 5D data points');
             spatialColorThresholdReached = true;
