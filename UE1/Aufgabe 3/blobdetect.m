@@ -54,12 +54,12 @@ end
 figure, show_all_circles(I, circleCols, circleRows, circleRads);
 
 % Report dingsi
-keypointIndex = 51;
-keypoint = [circleRows(keypointIndex), circleCols(keypointIndex)];
-bla = scalespace(keypoint(1), keypoint(2), :);
-bla = squeeze(bla);
-figure, plot(1:levels, bla);
-title(imgpath);
+% keypointIndex = 51;
+% keypoint = [circleRows(keypointIndex), circleCols(keypointIndex)];
+% bla = scalespace(keypoint(1), keypoint(2), :);
+% bla = squeeze(bla);
+% figure, plot(1:levels, bla);
+% title(imgpath);
 
 end
 
