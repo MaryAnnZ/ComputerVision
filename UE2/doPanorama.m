@@ -15,14 +15,14 @@ path = 'input/';
 format = '.jpg';
 name = 'campus';
 
-int = 1;
-for i = numberImages-1
+imageNo = 1;
+for image = numberImages-1
     
-    rawImgLeft = imread(strcat(strcat(path,strcat(name,int2str(int),format))));
-    rawImgRight = imread(strcat(strcat(path,strcat(name,int2str(int+1),format))));
+    rawImgLeft = imread(strcat(strcat(path,strcat(name,int2str(imageNo),format))));
+    rawImgRight = imread(strcat(strcat(path,strcat(name,int2str(imageNo+1),format))));
     
-    imgLeft = single(rgb2gray(rawImgLeft));
-    imgRight = single(rgb2gray(rawImgRight));
+    imgLeft = im2single(rgb2gray(rawImgLeft));
+    imgRight = im2single(rgb2gray(rawImgRight));
         
     %Each column of F is a feature frame and has the format [X;Y;S;TH], 
     %where X,Y is the center of the frame, S is the scale and TH is
@@ -41,7 +41,7 @@ for i = numberImages-1
     
     bestHomography = 0;
     maxInliners = 0;
-    bestInlinersCoordinates = 0;
+    bestInlinersIndices = 0;
     
     turns = 100;
     
@@ -49,15 +49,9 @@ for i = numberImages-1
         %Choose random 4 matches
         index = randsample(size(matches,2),4);
     
-        randomCoordinatesLeft = [Fleft(1,matches(1,index(1))) Fleft(2,matches(1,index(1)));
-                                 Fleft(1,matches(1,index(2))) Fleft(2,matches(1,index(2)));
-                                 Fleft(1,matches(1,index(3))) Fleft(2,matches(1,index(3)));
-                                 Fleft(1,matches(1,index(4))) Fleft(2,matches(1,index(4)));];
+        randomCoordinatesLeft = [Fleft(1,matches(1,index(:)))' Fleft(2,matches(1,index(:)))'];
                             
-        randomCoordinatesRight = [Fright(1,matches(2,index(1))) Fright(2,matches(2,index(1)));
-                                  Fright(1,matches(2,index(2))) Fright(2,matches(2,index(2)));
-                                  Fright(1,matches(2,index(3))) Fright(2,matches(2,index(3)));
-                                  Fright(1,matches(2,index(4))) Fright(2,matches(2,index(4)));];
+        randomCoordinatesRight = [Fright(1,matches(2,index(:)))' Fright(2,matches(2,index(:)))'];
                             
         try 
             %estimage homography between points
@@ -76,7 +70,7 @@ for i = numberImages-1
         [xLeftTrans,yLeftTrans] = transformPointsForward(currentHomography, Fleft(1,matches(1,:)),Fleft(2,matches(1,:)));
     
         LeftTrans = [xLeftTrans(:) yLeftTrans(:)]';
-        Right = [Fright(1,matches(1,:))' Fright(2,matches(1,:))']';
+        Right =     [Fright(1,matches(1,:))' Fright(2,matches(1,:))']';
         
         distance = sqrt(sum((Right - LeftTrans).^2));
         
@@ -84,8 +78,8 @@ for i = numberImages-1
         first = 1;
         
         numInliners = 0;
-        for i = 1:size(distance,2)
-            if (distance(i)<5)
+        for i = 1:1:size(distance,2)
+            if (distance(i)<double(5))
                 numInliners = numInliners+1;
                 if first==1
                     inlinerCoordinates = i;
@@ -102,7 +96,7 @@ for i = numberImages-1
         if (numInliners> maxInliners)
             maxInliners = numInliners;
             bestHomography = currentHomography;
-            bestInlinersCoordinates = inlinerCoordinates;
+            bestInlinersIndices = inlinerCoordinates;
         end
                
         % ..> determine # of inliers
@@ -112,17 +106,48 @@ for i = numberImages-1
     end
         
     maxInliners
-    bestInlinersCoordinates  
+    bestInlinersIndices
     
+    bestMatchHomography = 0;
+    minDinstance = 10000;
+    for j = 1:maxInliners
+        try 
+            %estimage homography between inliner matches
+            inlinersCoordinatesLeft =  [Fleft(1,matches(1,bestInlinersIndices(:)))'  Fleft(2,matches(1,bestInlinersIndices(:)))']';
+            inlinersCoordinatesRight = [Fright(1,matches(2,bestInlinersIndices(:)))' Fright(2,matches(2,bestInlinersIndices(:)))']';    
+                              
+            %movingcoordinates = leftimage Points
+            %fixedPoints = rightimage Points
+            currentInlinerHomography  = fitgeotrans(inlinersCoordinatesLeft,inlinersCoordinatesRight,'projective');
+            
+            [xLeftTransInliner,yLeftTransInliner] = transformPointsForward(currentInlinerHomography, Fleft(1,matches(1,:)),Fleft(2,matches(1,:)));
     
-    
+            LeftTransInliner = [xLeftTransInliner(:) yLeftTransInliner(:)]';
+            RightInliner = [Fright(1,matches(1,:))' Fright(2,matches(1,:))']';
+        
+            distance = sqrt(sum((RightInliner - LeftTransInliner).^2))
+        
+            if (minDinstance <minDinstance)
+                minDinstance = distance;
+                bestMatchHomography = currentInlinerHomography;
+            end
+        
+        catch ME
+            %point pairs are not chosen properly (e.g. three of them lie on the
+            %same line)
+            %error = 'hi'
+        end
+        
+    end
+      
+    %transformedLeftImage = imwarp(imgLeft,bestMatchHomography,'OutputView',imgRight);
     
     %%%%%LATER
     %%%For report: show with vl_plotframe
     
     %subplot(1,2,1), imshow(imgLeft)
     %subplot(1,2,2), imshow(imgRight)
-    int = int+1;
+    imageNo = imageNo+image;
 end
 
 
