@@ -5,6 +5,8 @@ img(:,:,1) = mat2gray(img(:,:,1));
 img(:,:,2) = mat2gray(img(:,:,2));
 img(:,:,3) = mat2gray(img(:,:,3));
 
+imshow(img)
+
 k = 4; %must be >1
 debug = 0; % 0 or 1
 random = 0;
