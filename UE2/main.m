@@ -4,13 +4,21 @@ name = 'campus';
 format = '.jpg';
 
 
-rawImgLeft = imread(strcat(strcat(path,strcat(name,int2str(1),format))));
-rawImgRight = imread(strcat(strcat(path,strcat(name,int2str(2),format))));
-    
+rawImg1 = imread(strcat(strcat(path,strcat(name,int2str(1),format))));
+rawImg2 = imread(strcat(strcat(path,strcat(name,int2str(2),format))));
+rawImg3 = imread(strcat(strcat(path,strcat(name,int2str(3),format))));    
+rawImg4 = imread(strcat(strcat(path,strcat(name,int2str(4),format))));
+rawImg5 = imread(strcat(strcat(path,strcat(name,int2str(5),format))));
 
-first = doHomography(rawImgLeft,rawImgRight);
+[homography1to2 t1to2] = doHomography(rawImg1,rawImg2);
+[homography2to3 t2to3]= doHomography(rawImg2,rawImg3);
+[homography4to3 t4to3]= doHomography(rawImg4,rawImg3);
+[homography5to4 t5to4]= doHomography(rawImg5,rawImg4);
 
-transformedLeftImage = imwarp(im2single(rgb2gray(rawImgLeft)),first);
+homography1to3 = homography2to3.T * homography1to2.T;
+homography5to3 = homography4to3.T * homography5to4.T;
+
+transformedLeftImage = imwarp(im2single(rgb2gray(rawImgLeft)),first,'OutputView',imref2d(size(rawImgRight)));
 imshow(transformedLeftImage);
 
 % %calculate k-Means clustering
