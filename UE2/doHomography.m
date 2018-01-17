@@ -1,4 +1,4 @@
-function [homography] = doHomography(rawImageLeft, rawImageRight)
+function [homography, T] = doHomography(rawImageLeft, rawImageRight)
 % imageLeft and imageRight as RGB
 %1. Find interest points in both images.
 %2. Describe the local appearance of interest points.
@@ -85,6 +85,7 @@ while (turns>=0)
     if (numInliners> maxInliners)
         maxInliners = numInliners;
         bestHomography = currentHomography;
+        T = currentHomography.T;
         bestInlinersIndices = inlinerCoordinates;
     end
     
@@ -132,16 +133,7 @@ homography = bestHomography;
 %         end
 %
 %     end
-
-
-%1) Sift
-%Convert to greyscale
-%use vl_sift for feature extraction
-%match descriptors with vl_ubcmatch
-% --> plot matches with match_plot
-%apply RAMSAC for outliners
-% --> estimate homography 1 and 2 image
-
+%%%%%%%%%%%%%%%%%%%%%%%
 
 %overlay the features using vl_plotframe
 

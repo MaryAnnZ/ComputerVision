@@ -8,9 +8,10 @@ rawImgLeft = imread(strcat(strcat(path,strcat(name,int2str(1),format))));
 rawImgRight = imread(strcat(strcat(path,strcat(name,int2str(2),format))));
     
 
-first = doHomography(rawImgLeft,rawImgRight);
+[first T] = doHomography(rawImgLeft,rawImgRight);
 
-transformedLeftImage = imwarp(im2single(rgb2gray(rawImgLeft)),first);
+transformedLeftImage = imwarp(im2single(rgb2gray(rawImgLeft)),first,'OutputView',imref2d(size(rawImgRight)));
+
 imshow(transformedLeftImage);
 
 % %calculate k-Means clustering
