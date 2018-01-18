@@ -48,7 +48,7 @@ for n = 2:numImages
     matchedPointsPrev = pointsPrevious(indexPairs(:,2), :);
 
     % Estimate the transformation between I(n) and I(n-1).
-    [tforms(n) t] = doHomography(I, refI);
+    [tforms(n)] = doHomography(I, refI, false);
     % Compute T(n) * T(n-1) * ... * T(1)
     tforms(n).T = tforms(n).T * tforms(n-1).T;
     if  n<numImages
