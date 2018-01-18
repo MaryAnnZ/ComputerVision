@@ -24,7 +24,7 @@ the terms of the BSD license (see the COPYING file).
 #include<stdarg.h>
 
 #ifdef VL_COMPILER_MSC
-#define snprintf _snprintf
+//#define snprintf _snprintf
 #define vsnprintf _vsnprintf
 #endif
 

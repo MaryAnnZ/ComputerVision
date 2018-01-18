@@ -32,13 +32,22 @@ end
 function [siftdata] = doSIFT(image)
     %disp(['doing SIFT on ', image]);
     I = imread(image);
+    
+    % check if greyscale, if not convert to greyscale
+    if size(I, 3) == 3
+        I = rgb2gray(I);
+    end
+    % convert to single for vl_dsift use
     I = im2single(I);
     
+    %determine a good step size
     Ilen = length(I);
-    step = floor((Ilen/10)/2); % ist denke ich eine akzeptable Heuristik für step-size
+    step = floor((Ilen/10)/2); % ist denke das ist eine akzeptable Heuristik für step-size
     
+    % apply dSIFT with a wide step size and BE FAST
     [frames, descr] = vl_dsift(I, 'Step', step, 'Fast');
     
-    %siftdata = descr(:,1:100);% TODO randsample(); % :(
+    % take 100 of the SIFT descriptors
+    %siftdata = descr(:,1:100);
     siftdata = descr(:, randsample(size(descr, 2), 100));
 end
