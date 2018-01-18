@@ -1,9 +1,9 @@
-%read input image
-path = 'input/';
-name = 'campus';
-format = '.jpg';
-
-% Load images.
+% %read input image
+ path = 'input/';
+ name = 'campus';
+ format = '.jpg';
+% 
+% % Load images.
 buildingDir = fullfile(toolboxdir('vision'), 'visiondata', 'building');
 buildingScene = imageDatastore('input/campus');
 
@@ -25,6 +25,7 @@ points = detectSURFFeatures(grayImage);
 numImages = numel(buildingScene.Files);
 tforms(numImages) = projective2d(eye(3));
 
+refI = I;
 % Iterate over remaining image pairs
 for n = 2:numImages
 
@@ -47,11 +48,12 @@ for n = 2:numImages
     matchedPointsPrev = pointsPrevious(indexPairs(:,2), :);
 
     % Estimate the transformation between I(n) and I(n-1).
-    tforms(n) = estimateGeometricTransform(matchedPoints, matchedPointsPrev,...
-        'projective', 'Confidence', 99.9, 'MaxNumTrials', 2000);
-
+    [tforms(n) t] = doHomography(I, refI);
     % Compute T(n) * T(n-1) * ... * T(1)
     tforms(n).T = tforms(n).T * tforms(n-1).T;
+    if  n<numImages
+        refI = I;
+    end
 end
 
 imageSize = size(I);  % all the images are the same size
@@ -100,6 +102,7 @@ height = round(yMax - yMin);
 
 % Initialize the "empty" panorama.
 panorama = zeros([height width 3], 'like', I);
+panoramaWithoutF = zeros([height width 3], 'like', I);
 
 blender = vision.AlphaBlender('Operation', 'Binary mask', ...
     'MaskSource', 'Input port');
@@ -113,26 +116,42 @@ panoramaView = imref2d([height width], xLimits, yLimits);
 for i = 1:numImages
 
     I = readimage(buildingScene, i);
-
+    alpha = zeros(size(I, 1), size(I, 2));
+     alpha(1, :) = 1;
+    alpha(:, 1) = 1;
+    alpha(size(alpha, 1), :) = 1;
+    alpha(:, size(alpha, 2)) = 1;
+    alpha = bwdist(alpha);
+    alpha = (alpha - min(min(alpha)))/(max(max(alpha)) - min(min(alpha)));
     % Transform I into the panorama.
     warpedImage = imwarp(I, tforms(i), 'OutputView', panoramaView);
-
+    warpedImageWithoutF = warpedImage;
+    for y = 1:size(panoramaWithoutF, 1)
+       for x = 1:size(panoramaWithoutF, 2)
+          if panoramaWithoutF(y, x, 1) > 0 | panoramaWithoutF(y, x, 2) > 0 | panoramaWithoutF(y, x, 3) > 0 
+            warpedImageWithoutF(y, x, :) = 0;
+          end
+       end
+    end
+    panoramaWithoutF = panoramaWithoutF + warpedImageWithoutF;
+    %     warpedAlpha = imwarp(alpha, tforms(i), 'OutputView', panoramaView);
     % Generate a binary mask.
     mask = imwarp(true(size(I,1),size(I,2)), tforms(i), 'OutputView', panoramaView);
-
+    
     % Overlay the warpedImage onto the panorama.
-    panorama = step(blender, panorama, warpedImage, mask);
+%     panorama = step(blender, panorama, warpedImage, mask);
 end
 
-figure
-imshow(panorama)
-% rawImg1 = imread(strcat(strcat(path,strcat(name,int2str(1),format))));
-% rawImg2 = imread(strcat(strcat(path,strcat(name,int2str(2),format))));
+
+imshow(panoramaWithoutF)
+
+ %rawImg1 = imread(strcat(strcat(path,strcat(name,int2str(1),format))));
+ %rawImg2 = imread(strcat(strcat(path,strcat(name,int2str(2),format))));
 % rawImg3 = imread(strcat(strcat(path,strcat(name,int2str(3),format))));    
 % rawImg4 = imread(strcat(strcat(path,strcat(name,int2str(4),format))));
 % rawImg5 = imread(strcat(strcat(path,strcat(name,int2str(5),format))));
 % 
-% [homography1to2 t1to2] = doHomography(rawImg1,rawImg2);
+%[homography1to2 t1to2] = doHomography(rawImg1,rawImg2);
 % [homography2to3 t2to3] = doHomography(rawImg2,rawImg3);
 % %[homography3to4 t3to4] = doHomography(rawImg3,rawImg4);
 % %[homography4to5 t4to5] = doHomography(rawImg4,rawImg5);

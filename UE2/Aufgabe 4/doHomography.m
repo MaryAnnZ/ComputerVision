@@ -32,7 +32,7 @@ bestHomography = 0;
 maxInliners = 0;
 bestInlinersIndices = 0;
 
-turns = 100;
+turns = 1000;
 
 while (turns>=0)
     %Choose random 4 matches
@@ -41,6 +41,7 @@ while (turns>=0)
     randomCoordinatesLeft = [Fleft(1,matches(1,index(:)))' Fleft(2,matches(1,index(:)))'];
     
     randomCoordinatesRight = [Fright(1,matches(2,index(:)))' Fright(2,matches(2,index(:)))'];
+    
     
     try
         %estimage homography between points
@@ -53,13 +54,13 @@ while (turns>=0)
         %same line)
         
         %error = 'hi'
-        break;
+        continue;
     end
     
     [xLeftTrans,yLeftTrans] = transformPointsForward(currentHomography, Fleft(1,matches(1,:)),Fleft(2,matches(1,:)));
     
     LeftTrans = [xLeftTrans(:) yLeftTrans(:)]';
-    Right =     [Fright(1,matches(1,:))' Fright(2,matches(1,:))']';
+    Right =     [Fright(1,matches(2,:))' Fright(2,matches(2,:))']';
     
     distance = sqrt(sum((Right - LeftTrans).^2));
     
@@ -96,7 +97,7 @@ while (turns>=0)
 end
 
 maxInliners
-bestInlinersIndices
+%bestInlinersIndices
 
 
 homography = bestHomography;
