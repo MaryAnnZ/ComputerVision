@@ -7,16 +7,9 @@
 buildingDir = fullfile(toolboxdir('vision'), 'visiondata', 'building');
 buildingScene = imageDatastore('input/campus');
 
-% Display images to be stitched
-montage(buildingScene.Files)
-
 % Read the first image from the image set.
 I = readimage(buildingScene, 1);
-
-% Initialize features for I(1)
-grayImage = rgb2gray(I);
-points = detectSURFFeatures(grayImage);
-[features, points] = extractFeatures(grayImage, points);
+imageSize = size(I);  % all the images are the same size
 
 % Initialize all the transforms to the identity matrix. Note that the
 % projective transform is used here because the building images are fairly
@@ -29,24 +22,17 @@ refI = I;
 % Iterate over remaining image pairs
 for n = 2:numImages
 
-    % Store points and features for I(n-1).
-    pointsPrevious = points;
-    featuresPrevious = features;
-
     % Read I(n).
     I = readimage(buildingScene, n);
-
-    % Detect and extract SURF features for I(n).
-    grayImage = rgb2gray(I);
-    points = detectSURFFeatures(grayImage);
-    [features, points] = extractFeatures(grayImage, points);
-
-    % Find correspondences between I(n) and I(n-1).
-    indexPairs = matchFeatures(features, featuresPrevious, 'Unique', true);
-
-    matchedPoints = points(indexPairs(:,1), :);
-    matchedPointsPrev = pointsPrevious(indexPairs(:,2), :);
-
+    if size(I, 1) > imageSize(1, 1)
+        imageSize(1, 1) = size(I, 1);
+    end
+    if size(I, 2) > imageSize(1, 2)
+        imageSize(1, 2) = size(I, 2);
+    end
+    if size(I, 3) > imageSize(1, 3)
+        imageSize(1, 3) = size(I, 3);
+    end
     % Estimate the transformation between I(n) and I(n-1).
     [tforms(n)] = doHomography(I, refI, false);
     % Compute T(n) * T(n-1) * ... * T(1)
@@ -56,7 +42,7 @@ for n = 2:numImages
     end
 end
 
-imageSize = size(I);  % all the images are the same size
+
 
 % Compute the output limits  for each transform
 for i = 1:numel(tforms)
