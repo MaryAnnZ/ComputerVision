@@ -1,29 +1,26 @@
-% %read input image
- path = 'input/';
- name = 'campus';
- format = '.jpg';
-% 
-% % Load images.
+%Reference for codebasis for image stitching: 
+%https://de.mathworks.com/help/vision/examples/feature-based-panoramic-image-stitching.html
+
+% Load images.
 buildingDir = fullfile(toolboxdir('vision'), 'visiondata', 'building');
 buildingScene = imageDatastore('input/campus');
 
 % Read the first image from the image set.
 I = readimage(buildingScene, 1);
-imageSize = size(I);  % all the images are the same size
+%initialize the image size
+imageSize = size(I); 
 
-% Initialize all the transforms to the identity matrix. Note that the
-% projective transform is used here because the building images are fairly
-% close to the camera. Had the scene been captured from a further distance,
-% an affine transform would suffice.
+% amount of images
 numImages = numel(buildingScene.Files);
+% homographies between the images
 tforms(numImages) = projective2d(eye(3));
-
+% predecessor image
 refI = I;
-% Iterate over remaining image pairs
+% Iterate over image pairs
 for n = 2:numImages
-
-    % Read I(n).
+    % Read next image
     I = readimage(buildingScene, n);
+    %update size if curren image is bigger
     if size(I, 1) > imageSize(1, 1)
         imageSize(1, 1) = size(I, 1);
     end
@@ -33,44 +30,36 @@ for n = 2:numImages
     if size(I, 3) > imageSize(1, 3)
         imageSize(1, 3) = size(I, 3);
     end
-    % Estimate the transformation between I(n) and I(n-1).
+    % Estimate the transformation between current image and predecessor
     [tforms(n)] = doHomography(I, refI, false);
-    % Compute T(n) * T(n-1) * ... * T(1)
+    % Compute the transformation between vurrent image and predecessor
     tforms(n).T = tforms(n).T * tforms(n-1).T;
+    %update predecessor image
     if  n<numImages
         refI = I;
     end
 end
 
-
-
-% Compute the output limits  for each transform
+% Compute the corners of every image after the tarnsformation
 for i = 1:numel(tforms)
     [xlim(i,:), ylim(i,:)] = outputLimits(tforms(i), [1 imageSize(2)], [1 imageSize(1)]);
 end
 
-%Next, compute the average X limits for each transforms and 
-%find the image that is in the center. Only the X limits are 
-%used here because the scene is known to be horizontal. 
-%If another set of images are used, both the X and
-%Y limits may need to be used to find the center image.
+%pick the middle image as center for the panorama
 avgXLim = mean(xlim, 2);
-
 [~, idx] = sort(avgXLim);
-
 centerIdx = floor((numel(tforms)+1)/2);
-
 centerImageIdx = idx(centerIdx);
 
-%Finally, apply the center image's inverse transform to all the others.
-
+%apply the center image's inverse transform to all the others.
 Tinv = invert(tforms(centerImageIdx));
-
+%update the transformation according to the central image
 for i = 1:numel(tforms)
     tforms(i).T = tforms(i).T * Tinv.T;
 end
 
-
+% Compute the corners of every image after the tarnsformation, to determine
+% the size of the panorama
 for i = 1:numel(tforms)
     [xlim(i,:), ylim(i,:)] = outputLimits(tforms(i), [1 imageSize(2)], [1 imageSize(1)]);
 end
@@ -87,41 +76,47 @@ width  = round(xMax - xMin);
 height = round(yMax - yMin);
 
 % Initialize the "empty" panorama.
+%with feathering
 panorama = zeros([height width 3], 'like', I);
+%without feathering
 panoramaWithoutF = zeros([height width 3], 'like', I);
-
-blender = vision.AlphaBlender('Operation', 'Binary mask', ...
-    'MaskSource', 'Input port');
 
 % Create a 2-D spatial reference object defining the size of the panorama.
 xLimits = [xMin xMax];
 yLimits = [yMin yMax];
 panoramaView = imref2d([height width], xLimits, yLimits);
-refAlpha  = zeros([height width], 'like', I);
-refWarpedImg = zeros([height width 3], 'like', I);
+
+%container for all transformed images and its alpha maps
 warpedImages = zeros(numImages, height, width, 3);
 warpedAlphas = zeros(numImages, height, width);
-% Create the panorama.
+% warp images + create panorama without blending
 for i = 1:numImages
-
+    %read original image
     I = readimage(buildingScene, i);
+    %create alpha map
     alpha = zeros(size(I, 1), size(I, 2));
-     alpha(1, :) = 1;
+    %border is 1
+    alpha(1, :) = 1;
     alpha(:, 1) = 1;
     alpha(size(alpha, 1), :) = 1;
     alpha(:, size(alpha, 2)) = 1;
+    %Euclidean distance
     alpha = bwdist(alpha);
+    %normalize
     alpha = (alpha - min(min(alpha)))/(max(max(alpha)) - min(min(alpha)));
-    % Transform I into the panorama.
+    
+    % transform the image and the alpha map
     warpedImage = imwarp(I, tforms(i), 'OutputView', panoramaView);
     warpedAlpha = imwarp(alpha, tforms(i), 'OutputView', panoramaView);
+    %save image and the apha map
     warpedImages(i, :, :, :) = warpedImage;
     warpedAlphas(i, :, :) = warpedAlpha;
     
-    %without feathering
+    % create panorama without feathering
     warpedImageWithoutF = warpedImage;
     for y = 1:size(panoramaWithoutF, 1)
        for x = 1:size(panoramaWithoutF, 2)
+          %if the value in the panorama is already set, set this pixel in the image 0 
           if panoramaWithoutF(y, x, 1) > 0 | panoramaWithoutF(y, x, 2) > 0 | panoramaWithoutF(y, x, 3) > 0 
             warpedImageWithoutF(y, x, :) = 0;
           end
@@ -129,13 +124,15 @@ for i = 1:numImages
     end
     panoramaWithoutF = panoramaWithoutF + warpedImageWithoutF;
 end
-
+%create panorama with alpha blending
  for y = 1:size(panorama, 1)
        for x = 1:size(panorama, 2)
            alphaSum = 0;
            r = 0;
            b = 0;
            g = 0;
+           %get the RGB values and the alpha values of all transformed
+           %images (sum (RGBi * alphai)/sum alphai)
            for i = 1:numImages
                alphaSum = alphaSum + warpedAlphas(i, y, x);
                r = r + (warpedImages(i, y, x, 1) * warpedAlphas(i, y, x));
@@ -154,66 +151,3 @@ end
 
 figure, imshow(panoramaWithoutF);
 figure, imshow(panorama);
-
- %rawImg1 = imread(strcat(strcat(path,strcat(name,int2str(1),format))));
- %rawImg2 = imread(strcat(strcat(path,strcat(name,int2str(2),format))));
-% rawImg3 = imread(strcat(strcat(path,strcat(name,int2str(3),format))));    
-% rawImg4 = imread(strcat(strcat(path,strcat(name,int2str(4),format))));
-% rawImg5 = imread(strcat(strcat(path,strcat(name,int2str(5),format))));
-% 
-%[homography1to2 t1to2] = doHomography(rawImg1,rawImg2);
-% [homography2to3 t2to3] = doHomography(rawImg2,rawImg3);
-% %[homography3to4 t3to4] = doHomography(rawImg3,rawImg4);
-% %[homography4to5 t4to5] = doHomography(rawImg4,rawImg5);
-% 
-% homography2to3.T = homography2to3.T * homography1to2.T;
-% 
-% 
-% imageSize = size(rawImg1);
-% 
-% [xLim(1, :), yLim(1, :)] = outputLimits(homography1to3, [1 imageSize(2)], [1 imageSize(1)]);
-% [xLim(2, :), yLim(2, :)] = outputLimits(homography2to3, [1 imageSize(2)], [1 imageSize(1)]);
-% [xLim(3, :), yLim(3, :)] = outputLimits(homography4to3, [1 imageSize(2)], [1 imageSize(1)]);
-% [xLim(4, :), yLim(4, :)] = outputLimits(homography5to3, [1 imageSize(2)], [1 imageSize(1)]);
-% 
-% % Find the minimum and maximum output limits
-% xMin = min([1; xLim(:)]);
-% xMax = max([imageSize(2); xLim(:)]);
-% 
-% yMin = min([1; yLim(:)]);
-% yMax = max([imageSize(1); yLim(:)]);
-% 
-% width  = round(xMax - xMin)
-% height = round(yMax - yMin)
-% 
-% transformedLeftImage = imwarp(im2single(rgb2gray(rawImg1)),homography1to2,'OutputView',imref2d(size(rawImg2)));
-% 
-% imshow(transformedLeftImage);
-
-% %calculate k-Means clustering
-% panorama = doPanorama(path, name, noOfImages, turns);
-% 
-% 
-% 
-% 
-% transformedImages = [transformedImages transformedLeftImage];
-
-%%%%%LATER
-%%%For report: show with vl_plotframe
-
-%subplot(1,2,1), imshow(imgLeft)
-%subplot(1,2,2), imshow(imgRight)
-
-
-%imshow(transformedImages);
-
-
-% %show results
-% subplot(1,2,1), imshow(color)
-% subplot(1,2,2), imshow(spatial)
-
-%random vs. pseudo random cluster
-%falls weniger cluster als k ?
-% Frage: fehler wegen sehr hohem k
-
-
