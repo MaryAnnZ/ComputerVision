@@ -99,6 +99,8 @@ yLimits = [yMin yMax];
 panoramaView = imref2d([height width], xLimits, yLimits);
 refAlpha  = zeros([height width], 'like', I);
 refWarpedImg = zeros([height width 3], 'like', I);
+warpedImages = zeros(numImages, height, width, 3);
+warpedAlphas = zeros(numImages, height, width);
 % Create the panorama.
 for i = 1:numImages
 
@@ -113,6 +115,9 @@ for i = 1:numImages
     % Transform I into the panorama.
     warpedImage = imwarp(I, tforms(i), 'OutputView', panoramaView);
     warpedAlpha = imwarp(alpha, tforms(i), 'OutputView', panoramaView);
+    warpedImages(i, :, :, :) = warpedImage;
+    warpedAlphas(i, :, :) = warpedAlpha;
+    
     %without feathering
     warpedImageWithoutF = warpedImage;
     for y = 1:size(panoramaWithoutF, 1)
@@ -123,37 +128,28 @@ for i = 1:numImages
        end
     end
     panoramaWithoutF = panoramaWithoutF + warpedImageWithoutF;
-    %alpha blending
-    if i > 1
-       for y = 1:size(warpedImage, 1)
-            for x = 1:size(warpedImage, 2)
-                if (warpedImage(y, x, 1) > 0 | warpedImage(y, x, 2) > 0 | warpedImage(y, x, 3) > 0) && (panorama(y, x, 1) > 0 | panorama(y, x, 2) > 0 | panorama(y, x, 3) > 0) 
-                    %do alpha blending
-                    alphaSum = refAlpha(y, x) + warpedAlpha(y, x);
-                    r = double(refWarpedImg(y, x, 1)) * refAlpha(y, x) + double(warpedImage(y, x, 1)) * warpedAlpha(y, x);
-                    r = r / alphaSum;
-                    g = double(refWarpedImg(y, x, 2)) * refAlpha(y, x) + double(warpedImage(y, x, 2)) * warpedAlpha(y, x);
-                    g = g / alphaSum;
-                    b = double(refWarpedImg(y, x, 3)) * refAlpha(y, x) + double(warpedImage(y, x, 3)) * warpedAlpha(y, x);
-                    b = b / alphaSum;
-                    panorama(y, x, 1) = r;
-                    panorama(y, x, 2) = g;
-                    panorama(y, x, 3) = b;
-                    warpedImage(y, x, :) = 0;
-                end
-            end
-       end 
-    end
-    panorama = panorama + warpedImage;
-    refAlpha = warpedAlpha;
-    refWarpedImg = warpedImage;
-    %     warpedAlpha = imwarp(alpha, tforms(i), 'OutputView', panoramaView);
-    % Generate a binary mask.
-    mask = imwarp(true(size(I,1),size(I,2)), tforms(i), 'OutputView', panoramaView);
-    
-    % Overlay the warpedImage onto the panorama.
-%     panorama = step(blender, panorama, warpedImage, mask);
 end
+
+ for y = 1:size(panorama, 1)
+       for x = 1:size(panorama, 2)
+           alphaSum = 0;
+           r = 0;
+           b = 0;
+           g = 0;
+           for i = 1:numImages
+               alphaSum = alphaSum + warpedAlphas(i, y, x);
+               r = r + (warpedImages(i, y, x, 1) * warpedAlphas(i, y, x));
+               g = g + (warpedImages(i, y, x, 2) * warpedAlphas(i, y, x));
+               b = b + (warpedImages(i, y, x, 3) * warpedAlphas(i, y, x));
+           end
+           r = r / alphaSum;
+           g = g / alphaSum;
+           b = b / alphaSum;
+           panorama(y, x, 1) = r;
+           panorama(y, x, 2) = g;
+           panorama(y, x, 3) = b;
+       end
+ end
 
 
 figure, imshow(panoramaWithoutF);
