@@ -1,4 +1,4 @@
-function [ conf_matrix ] = ClassifyImages( folder, C, training, group )
+function [ evaluation ] = ClassifyImages( folder, C, training, group )
 %CLASSIFYIMAGES Summary of this function goes here
 %   Detailed explanation goes here
 DEBUG = false;
@@ -49,10 +49,6 @@ conf_matrix = knnclassify(testImageData, training, group, 3);
 % Bilder
 % d.h. Zahlen auf der Diagonale = korrekte Zuordnungen
 evaluation = confusionmat(correctImageGroup, conf_matrix);
-
-correct = sum(diag(evaluation)); % correct classifications are in diagonal
-disp(['Eval: ' ,num2str(correct) ,' of ', num2str(size(conf_matrix, 1)),' points have been classified correctly.']);
-disp(['This is a positive rate of ', num2str(correct / size(conf_matrix, 1) *100),'%.']);
 
 end
 
